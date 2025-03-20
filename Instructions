@@ -1,0 +1,59 @@
+Instructions to Run the Movie Recommendation System 
+Follow these steps to set up and run the Movie Recommendation System project built with Streamlit:
+
+Prerequisites:
+Python 3.x: Ensure Python is installed on your system.
+
+Pip: Python's package installer.
+
+Dataset Files: Download the following files and place them in the project directory:
+
+tmdb_5000_movies.csv
+
+tmdb_5000_credits.csv
+
+Step 1: Clone the Repository
+Open a terminal or command prompt.
+
+Clone the repository:
+
+git clone https://github.com/Aastha02-jan/movie-recommendation-system.git
+Navigate to the project directory:
+
+cd movie-recommendation-system
+Step 2: Install Dependencies
+Install the required Python libraries using pip:
+
+pip install pandas numpy scikit-learn nltk streamlit
+
+Step 3: Run the Streamlit App
+Start the Streamlit app by running:
+
+streamlit run app.py
+A new browser window/tab will open automatically, displaying the Movie Recommendation System interface.
+
+Step 4: Use the Application
+Enter a Movie Title:
+
+In the input box, type the name of a movie (e.g., Avatar).
+
+Get Recommendations:
+
+Click the "Recommend" button.
+
+The system will display a list of 5 recommended movies similar to the one you entered.
+
+Example:
+Input: Avatar
+
+Output:
+
+Guardians of the Galaxy
+
+Aliens
+
+Star Wars: The Clone Wars
+
+Star Trek Beyond
+
+The Avengers
