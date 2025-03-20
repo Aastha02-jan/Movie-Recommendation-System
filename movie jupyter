@@ -26,7 +26,6 @@ movies.head(1)
 
 movies = movies[['movie_id','title','overview','genres','keywords','cast','crew']]
 
-
 movies.info()
 movies.head()
 movies.isnull().sum()
