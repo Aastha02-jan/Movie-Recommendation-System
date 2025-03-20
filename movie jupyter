@@ -1,0 +1,130 @@
+%pip install pandas
+
+%pip install numpy
+
+import pandas as pd
+import numpy as np
+movies = pd.read_csv('tmdb_5000_movies.csv')
+credits = pd.read_csv('tmdb_5000_credits.csv')
+
+movies.head(1)
+movies.shape
+credits.head(1)
+movies = movies.merge(credits,on='title')
+movies.shape
+
+credits.shape
+movies.head(1)
+
+#genre
+#id
+#title
+#keywords
+#overview
+#cast
+#crew
+
+movies = movies[['movie_id','title','overview','genres','keywords','cast','crew']]
+
+
+movies.info()
+movies.head()
+movies.isnull().sum()
+movies.dropna(inplace = True)
+movies.duplicated().sum()
+movies.iloc[0].genres
+def convert(obj):
+    l = []
+    for i in ast.literal_eval(obj) :
+        l.append(i['name'])
+    return l 
+
+import ast
+
+movies['genres'] = movies['genres'].apply(convert)
+movies.head()
+movies['keywords'] = movies['keywords'].apply(convert)
+movies['cast'][0]
+def convert1(obj):
+    l = []
+    counter = 0
+    for i in ast.literal_eval(obj) :
+        if counter != 3:
+            l.append(i['name'])
+            counter += 1
+    return l 
+movies['cast'] = movies['cast'].apply(convert1)
+movies.head()
+movies['crew'][0]
+def fetch_d(obj):
+    l = []
+    counter = 0
+    for i in ast.literal_eval(obj) :
+        if i['job']== 'Director':
+            l.append(i['name'])
+            break
+    return l 
+movies['crew'] = movies['crew'].apply(fetch_d)
+movies.head()
+movies.rename(columns={'crew':'director'} ,inplace= True)
+movies.head()
+movies['overview']= movies['overview'].apply(lambda x:x.split())
+movies['overview']
+movies.head()
+movies['genres']=movies['genres'].apply(lambda x :[i.replace(" ","") for i in x] )
+movies['cast']=movies['cast'].apply(lambda x :[i.replace(" ","") for i in x] )
+movies['director']=movies['director'].apply(lambda x :[i.replace(" ","") for i in x] )
+movies['keywords']=movies['keywords'].apply(lambda x :[i.replace(" ","") for i in x] )
+
+movies.head()
+movies['tags'] = movies['overview'] + movies['cast']+movies['director']+movies['keywords']+movies['genres']
+df = movies[['movie_id','title','tags']]
+df['tags'] = df['tags'].apply(lambda x: " ".join(x)  )
+df.head()
+df['tags'][0]
+
+df['tags'] = df['tags'].apply(lambda x:x.lower())
+df.head(0)
+%pip install sklearn
+from nltk.stem.porter import PorterStemmer
+ps = PorterStemmer()
+def stem(text):
+    y =[]
+
+    for i in text.split():
+        y.append(ps.stem(i))
+    return " ".join(y)
+df['tags']=df['tags'].apply(stem)
+df['tags'][0]
+
+%pip install scikit-learn
+from sklearn.feature_extraction.text import CountVectorizer
+cv = CountVectorizer(max_features=5000,stop_words = 'english')
+vectors = cv.fit_transform(df['tags']).toarray() 
+vectors
+vectors[0]
+(cv.get_feature_names_out())
+%pip install nltk
+df.shape
+from sklearn.metrics.pairwise import cosine_similarity
+similarity = cosine_similarity(vectors)
+similarity[1]
+(list(enumerate(similarity[0])))
+ 
+def recommend(movie) :
+    movie_index = df[df ['title']==movie].index[0]
+    distances = similarity[movie_index]
+    movie_list = sorted(list(enumerate(distances)),reverse = True,key = lambda x:x[1])[1:6]
+    for i in movie_list:
+        print(df.iloc[i[0]].title)
+
+
+df.head(10)
+recommend('Avatar')
+%pip install pickle
+import pickle
+pickle.dump(df,open('movies.pkl','wb'))
+pickle.dump(df.to_dict(),open('movies_dict.pkl','wb'))
+pickle.dump(similarity,open('similarity','wb'
+    
+))
