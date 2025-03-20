@@ -32,11 +32,6 @@ Frontend: Streamlit.
 Dataset: TMDB 5000 Movies Dataset.
 TMDB 5000 Credits Dataset.
 
-Installation:
-Clone the repository:
-git clone https://github.com/your-username/movie-recommendation-system.git
-cd movie-recommendation-system
-
 Install dependencies:
 pip install pandas numpy scikit-learn nltk streamlit
 
