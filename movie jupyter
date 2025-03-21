@@ -1,12 +1,12 @@
 %pip install pandas
 
+
 %pip install numpy
 
 import pandas as pd
 import numpy as np
-movies = pd.read_csv('tmdb_5000_movies.csv')
-credits = pd.read_csv('tmdb_5000_credits.csv')
-
+movies = pd.read_csv('tmdb_5000_movies.csv', encoding='latin-1')
+credits = pd.read_csv('tmdb_5000_credits.csv', encoding='latin-1')
 movies.head(1)
 movies.shape
 credits.head(1)
@@ -25,6 +25,7 @@ movies.head(1)
 #crew
 
 movies = movies[['movie_id','title','overview','genres','keywords','cast','crew']]
+
 
 movies.info()
 movies.head()
@@ -124,6 +125,68 @@ recommend('Avatar')
 import pickle
 pickle.dump(df,open('movies.pkl','wb'))
 pickle.dump(df.to_dict(),open('movies_dict.pkl','wb'))
-pickle.dump(similarity,open('similarity','wb'
-    
-))
+pickle.dump(similarity,open('similarity','wb'))
+`import pandas as pd
+import zipfile
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import pickle
+
+# Extract credits.zip
+with zipfile.ZipFile('tmdb_5000_credits.zip', 'r') as zip_ref:
+    zip_ref.extractall('.')
+
+# Load datasets
+movies = pd.read_csv('tmdb_5000_movies.csv', encoding='latin-1')
+credits = pd.read_csv('tmdb_5000_credits.csv', encoding='latin-1')
+
+# Rename 'id' column in movies to 'movie_id'
+movies.rename(columns={'id': 'movie_id'}, inplace=True)
+
+# Merge datasets on 'movie_id'
+movies = movies.merge(credits, on='movie_id')
+
+# Resolve column conflicts (e.g., title_x and title_y)
+movies.rename(columns={'title_x': 'title'}, inplace=True)
+
+# Select relevant columns
+movies = movies[['movie_id', 'title', 'overview', 'genres', 'keywords', 'cast', 'crew']]
+
+# Fill missing values
+movies.fillna('', inplace=True)
+
+# Preprocess genres, keywords, cast, and crew columns
+def preprocess_column(column):
+    return column.str.replace('[^a-zA-Z0-9 ]', '', regex=True).str.lower()
+
+movies['genres'] = preprocess_column(movies['genres'])
+movies['keywords'] = preprocess_column(movies['keywords'])
+movies['cast'] = preprocess_column(movies['cast'])
+movies['crew'] = preprocess_column(movies['crew'])
+
+# Combine all relevant text into a single 'tags' column
+movies['tags'] = (
+    movies['overview'] + ' ' +
+    movies['genres'] + ' ' +
+    movies['keywords'] + ' ' +
+    movies['cast'] + ' ' +
+    movies['crew']
+)
+
+# Vectorize the tags
+cv = CountVectorizer(max_features=5000, stop_words='english')
+vectorized_tags = cv.fit_transform(movies['tags']).toarray()
+
+# Calculate cosine similarity
+similarity = cosine_similarity(vectorized_tags)
+
+# Save the similarity matrix
+with open('similarity.pkl', 'wb') as f:
+    pickle.dump(similarity, f)
+
+# Save movie dictionary (movie_id and title)
+movies_dict = movies[['movie_id', 'title']].to_dict()
+with open('movies_dict.pkl', 'wb') as f:
+    pickle.dump(movies_dict, f)
+
+print("Files similarity.pkl and movies_dict.pkl have been successfully created.")`
