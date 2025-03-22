@@ -125,16 +125,18 @@ recommend('Avatar')
 import pickle
 pickle.dump(df,open('movies.pkl','wb'))
 pickle.dump(df.to_dict(),open('movies_dict.pkl','wb'))
-pickle.dump(similarity,open('similarity','wb'))
-`import pandas as pd
+pickle.dump(similarity,open('similarity','wb'
+    
+))
 import zipfile
+import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 
 # Extract credits.zip
 with zipfile.ZipFile('tmdb_5000_credits.zip', 'r') as zip_ref:
-    zip_ref.extractall('.')
+    zip_ref.extractall('.')  # Extract files to the current directory
 
 # Load datasets
 movies = pd.read_csv('tmdb_5000_movies.csv', encoding='latin-1')
@@ -173,20 +175,118 @@ movies['tags'] = (
     movies['crew']
 )
 
-# Vectorize the tags
+# Vectorize the tags using CountVectorizer
 cv = CountVectorizer(max_features=5000, stop_words='english')
 vectorized_tags = cv.fit_transform(movies['tags']).toarray()
 
-# Calculate cosine similarity
+# Calculate cosine similarity between movies based on tags
 similarity = cosine_similarity(vectorized_tags)
 
-# Save the similarity matrix
+# Save the similarity matrix to a pickle file
 with open('similarity.pkl', 'wb') as f:
     pickle.dump(similarity, f)
 
-# Save movie dictionary (movie_id and title)
+# Save movie dictionary (movie_id and title) to a pickle file
 movies_dict = movies[['movie_id', 'title']].to_dict()
 with open('movies_dict.pkl', 'wb') as f:
     pickle.dump(movies_dict, f)
 
-print("Files similarity.pkl and movies_dict.pkl have been successfully created.")`
+print("Files similarity.pkl and movies_dict.pkl have been successfully created.")
+
+import pandas as pd
+import streamlit as st
+import pickle
+import requests
+
+# TMDb API Key
+TMDB_API_KEY = "YOUR_TMDB_API_KEY"  # Replace with your TMDb API key
+
+# Function to recommend movies based on cosine similarity
+def recommend(movie_name):
+    # Find the index of the selected movie in the DataFrame
+    movie_index = df[df['title'] == movie_name].index[0]
+    distances = similarity[movie_index]  # Get similarity scores for the selected movie
+    # Sort movies by similarity score in descending order (excluding itself)
+    movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
+    
+    recommended_movies = []
+    recommended_movie_ids = []  # Store movie IDs for fetching OTT links
+    
+    for i in movie_list:
+        recommended_movies.append(df.iloc[i[0]].title)  # Append recommended movie titles
+        recommended_movie_ids.append(df.iloc[i[0]].movie_id)  # Append movie IDs
+    
+    return recommended_movies, recommended_movie_ids
+
+# Function to fetch OTT links using TMDb's /watch/providers endpoint
+def fetch_ott_links(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/watch/providers"
+    params = {"api_key": TMDB_API_KEY}
+    
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            results = data.get("results", {}).get("IN", {})  # Get results for India (locale: IN)
+            if "flatrate" in results:
+                ott_links = []
+                for provider in results["flatrate"]:
+                    ott_links.append(provider["provider_name"])
+                return ott_links
+            else:
+                return ["No streaming platforms found"]
+        else:
+            return [f"Error fetching OTT links (HTTP {response.status_code})"]
+    except Exception as e:
+        return [f"Error: {str(e)}"]
+
+# Load files
+movies_dict = pickle.load(open('movies_dict.pkl', 'rb'))  # Load the movies dictionary
+df = pd.DataFrame(movies_dict)  # Convert dictionary to DataFrame
+similarity = pickle.load(open('similarity.pkl', 'rb'))  # Load the similarity matrix
+
+# Set background image using CSS
+def set_background():
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stAppViewContainer"] {{
+            background-image: url("https://images.app.goo.gl/8oRkWESqXo7FQskz5");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Apply the background image
+set_background()
+
+# Streamlit app layout
+st.title('Movie Recommender System')
+
+# Dropdown to select a movie
+selected_movie_name = st.selectbox(
+    'Tell me your preferences?',  # Label for dropdown menu
+    df['title'].values  # Pass movie titles as options
+)
+
+# Button to trigger recommendations
+if st.button("Recommend"):
+    recommendations, movie_ids = recommend(selected_movie_name)  # Get recommendations and their IDs
+    
+    if recommendations:
+        st.write("Recommended Movies:")
+        
+        for title, movie_id in zip(recommendations, movie_ids):
+            st.write(f"**{title}**")  # Display each recommended movie title
+            
+            # Fetch and display OTT links for each recommended movie
+            st.write("Available on:")
+            ott_links = fetch_ott_links(movie_id)
+            for link in ott_links:
+                st.write(f"- {link}")
+    else:
+        st.write("No recommendations available.")
