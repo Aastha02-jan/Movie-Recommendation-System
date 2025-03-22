@@ -134,18 +134,17 @@ st.markdown('<div class="title">Movie Recommendation System</div>', unsafe_allow
 
 # Dropdown to select a movie
 selected_movie_name = st.selectbox(
-    'Tell me your preferences?',
-    df['title'].values
+    'Select a movie to get recommendations',
+    options=["Select a movie"] + list(df['title'].values),
 )
 
-# Button to trigger recommendations
-if st.button("Recommend"):
+if selected_movie_name != "Select a movie" and st.button("Recommend"):
     recommendations, posters, ratings, genres, release_years, streaming_links_list = recommend(selected_movie_name)
     
     if recommendations:
         st.write("Recommended Movies:")
         
-        cols = st.columns(len(recommendations))  # Create one column per recommendation
+        cols = st.columns(len(recommendations)) 
         
         for col, title, poster, rating, genre, release_year, streaming_links in zip(cols, recommendations, posters, ratings, genres, release_years, streaming_links_list):
             with col:
@@ -155,7 +154,6 @@ if st.button("Recommend"):
                 st.markdown(f"⭐ IMDb Rating: {rating}/10")
                 st.markdown(f"🎭 Genre: {genre}")
                 
-                st.markdown("📺 Available on:")
                 for link in streaming_links:
                     st.markdown(link)  # Display clickable OTT links
                 
