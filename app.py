@@ -101,7 +101,7 @@ df = pd.DataFrame(movies_dict)
 similarity = pickle.load(open('similarity.pkl', 'rb'))
 
 # Streamlit app title with styled class
-st.markdown('<div class="title">Movie Recommender System</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">Movie Recommendation System</div>', unsafe_allow_html=True)
 
 # Dropdown to select a movie
 selected_movie_name = st.selectbox(
