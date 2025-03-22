@@ -41,7 +41,8 @@ streamlit run app.py
 Example:
 Input: "Avatar"
 Output:
-Guardians of the Galaxy
-Aliens
-Star Wars: The Clone Wars
-Star Trek Beyond
+Jupiter Ascending
+The Martian
+The Amazing Spider-Man
+Spectre
+2012
