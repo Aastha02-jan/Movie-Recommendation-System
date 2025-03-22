@@ -2,47 +2,72 @@ import pandas as pd
 import streamlit as st
 import pickle
 import requests
-import time
+
+# TMDb API Key
+TMDB_API_KEY = "5fd8bd128c81a8bade382df0f226bf66"  # Replace with your TMDb API key
 
 # Function to fetch movie details (poster, IMDb rating, genre, and release year) using TMDb API
 def fetch_movie_details(movie_id):
-    api_key = "5fd8bd128c81a8bade382df0f226bf66"  # Your TMDb API key
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}&language=en-US"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
     
-    for _ in range(3):  # Retry up to 3 times
-        try:
-            response = requests.get(url, headers=headers, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Extract required details
-                poster_path = f"https://image.tmdb.org/t/p/original{data.get('poster_path', '')}"
-                imdb_rating = data.get('vote_average', 'N/A')  # IMDb rating
-                genres = ", ".join([genre['name'] for genre in data.get('genres', [])])  # Genres as a comma-separated string
-                
-                # Extract release year from release_date
-                release_date = data.get('release_date', 'N/A')
-                release_year = pd.to_datetime(release_date).year if release_date != 'N/A' else "N/A"
-                
-                return poster_path, imdb_rating, genres, release_year
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
             
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching details for movie ID {movie_id}: {e}")
-            time.sleep(1)  # Wait for 1 second before retrying
-    
-    # Fallback values in case of failure
-    return (
-        "https://via.placeholder.com/300x450?text=No+Poster+Available",  # Poster fallback
-        "N/A",  # IMDb rating fallback
-        "N/A",  # Genre fallback
-        "N/A"   # Release year fallback
-    )
+            # Extract required details
+            poster_path = f"https://image.tmdb.org/t/p/original{data.get('poster_path', '')}"
+            imdb_rating = round(data.get('vote_average', 0), 2)  # IMDb rating rounded to 2 decimal places
+            genres = ", ".join([genre['name'] for genre in data.get('genres', [])])  # Genres as a comma-separated string
+            
+            # Extract release year from release_date
+            release_date = data.get('release_date', 'N/A')
+            release_year = pd.to_datetime(release_date).year if release_date != 'N/A' else "N/A"
+            
+            return poster_path, imdb_rating, genres, release_year
+            
+        else:
+            return (
+                "https://via.placeholder.com/300x450?text=No+Poster+Available",  # Poster fallback
+                "N/A",  # IMDb rating fallback
+                "N/A",  # Genre fallback
+                "N/A"   # Release year fallback
+            )
+    except Exception as e:
+        print(f"Error fetching details for movie ID {movie_id}: {e}")
+        return (
+            "https://via.placeholder.com/300x450?text=No+Poster+Available",  # Poster fallback
+            "N/A",  # IMDb rating fallback
+            "N/A",  # Genre fallback
+            "N/A"   # Release year fallback
+        )
 
-# Function to recommend movies and fetch their details (poster, IMDb rating, genre, and release year)
+# Function to fetch streaming links using TMDb's /watch/providers endpoint
+def fetch_streaming_links(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/watch/providers?api_key={TMDB_API_KEY}"
+    
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            results = data.get("results", {}).get("IN", {})  # Get results for India (locale: IN)
+            
+            if results and "link" in results:
+                tmdb_watch_link = results["link"]  # Link to TMDb's /watch page for the movie
+                return [f"[View Streaming Options]({tmdb_watch_link})"]
+            else:
+                return ["No streaming platforms found"]
+        else:
+            return [f"Error fetching streaming links (HTTP {response.status_code})"]
+    except Exception as e:
+        print(f"Error fetching streaming links: {e}")
+        return [f"Error: {str(e)}"]
+
+# Function to recommend movies and fetch their details (poster, IMDb rating, genre, release year, and streaming links)
 def recommend(movie_name):
     movie_index = df[df['title'] == movie_name].index[0]  # Get the index of the selected movie
     distances = similarity[movie_index]  # Get similarity scores for the selected movie
@@ -53,6 +78,7 @@ def recommend(movie_name):
     recommended_ratings = []
     recommended_genres = []
     recommended_release_years = []
+    recommended_streaming_links = []  # List to store streaming links
     
     for i in movie_list:
         movie_id = df.iloc[i[0]].movie_id  # Assuming 'movie_id' column contains TMDb IDs
@@ -60,13 +86,16 @@ def recommend(movie_name):
         title = df.iloc[i[0]].title
         poster, imdb_rating, genres, release_year = fetch_movie_details(movie_id)  # Fetch all details
         
+        streaming_links = fetch_streaming_links(movie_id)  # Fetch streaming links
+        
         recommended_movies.append(title)
         recommended_posters.append(poster)
         recommended_ratings.append(imdb_rating)
         recommended_genres.append(genres)
         recommended_release_years.append(release_year)
+        recommended_streaming_links.append(streaming_links)
 
-    return recommended_movies, recommended_posters, recommended_ratings, recommended_genres, recommended_release_years
+    return recommended_movies, recommended_posters, recommended_ratings, recommended_genres, recommended_release_years, recommended_streaming_links
 
 # Function to set background image and style title for better contrast
 def set_background_and_style():
@@ -111,22 +140,24 @@ selected_movie_name = st.selectbox(
 
 # Button to trigger recommendations
 if st.button("Recommend"):
-    recommendations, posters, ratings, genres, release_years = recommend(selected_movie_name)
+    recommendations, posters, ratings, genres, release_years, streaming_links_list = recommend(selected_movie_name)
     
     if recommendations:
         st.write("Recommended Movies:")
         
-        # Display movies and posters side by side in a single row with additional details
         cols = st.columns(len(recommendations))  # Create one column per recommendation
         
-        for col, title, poster, rating, genre, release_year in zip(cols, recommendations, posters, ratings, genres, release_years):
+        for col, title, poster, rating, genre, release_year, streaming_links in zip(cols, recommendations, posters, ratings, genres, release_years, streaming_links_list):
             with col:
-                st.image(poster, use_container_width=True)  # Display poster in the column
+                st.image(poster)  # Display poster
                 
-                # Display title with release year in brackets and IMDb rating below it
-                st.markdown(f"**{title} ({release_year})**")  
+                st.markdown(f"**{title} ({release_year})**")
                 st.markdown(f"⭐ IMDb Rating: {rating}/10")
                 st.markdown(f"🎭 Genre: {genre}")
+                
+                st.markdown("📺 Available on:")
+                for link in streaming_links:
+                    st.markdown(link)  # Display clickable OTT links
                 
     else:
         st.write("No recommendations available.")
