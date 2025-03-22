@@ -41,8 +41,8 @@ streamlit run app.py
 Example:
 Input: "Avatar"
 Output:
-The Legend of Tarzan; 
-The Island; 
+Jupiter Ascending; 
+The Martian; 
 The Amazing Spider-Man; 
 Spectre; 
-A Christmas Carol;
+2012;
