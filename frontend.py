@@ -126,8 +126,9 @@ set_background_and_style()
 
 # Load data
 movies_dict = pickle.load(open('movies_dict.pkl', 'rb'))
-df = pd.DataFrame(movies_dict)
 similarity = pickle.load(open('similarity.pkl', 'rb'))
+df = pd.DataFrame(movies_dict)
+
 
 # Streamlit app title with styled class
 st.markdown('<div class="title">Movie Recommendation System</div>', unsafe_allow_html=True)
